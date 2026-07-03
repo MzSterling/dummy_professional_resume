@@ -23,5 +23,5 @@ jobs:
 
             - name: Push image
               run: 
-                dcker push mzsterling/cicd-portfolio
+                docker push mzsterling/cicd-portfolio
         
