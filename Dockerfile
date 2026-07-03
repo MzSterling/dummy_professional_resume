@@ -1,4 +1,4 @@
-git FROM httpd 
+FROM httpd 
 RUN apt update
 RUN apt install nano vim -y
 
