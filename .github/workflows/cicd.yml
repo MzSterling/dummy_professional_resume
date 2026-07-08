@@ -42,7 +42,7 @@ jobs:
                     role-to-assume: ${{ secrets.AWS_ROLE }}
             -   name: Login to Amason ECR
                 id: login-ecr
-                uses: awss-actions/amazon-ecr-login@v2
+                uses: aws-actions/amazon-ecr-login@v2
 
             -   name: Push image to ECR
                 run: docker push ${{ secrets.ECR_REPO}}/my-repo:latest
