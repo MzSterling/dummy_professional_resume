@@ -1,27 +1,65 @@
-name: professional resume pipleline
+name : Build and Push to ECR
 
-on:
-    push:
-        branches: ["main"]
+on: 
+    push: 
+        #pull_request:
+           # branches: ['main']
+        branches: [ 'main' ]
+
+permissions: 
+    id-token: write
+    contents: read
 
 jobs:
-    build: 
-        runs-on: ubuntu-latest # macos, windows
+    build_scan:
+        runs-on: ubuntu-latest
         steps: 
-            - name: clone the code
-              uses: actions/checkout@v4
-            - name: Build image
-              run: 
-                docker build -t mzsterling/cicd-portfolio . #building our image wich we called cicd-portfoio
-            - name : Docker login
-              run: docker login
-            - name: Login to Docker Hub
-              uses: docker/login-action@v2
+            - name: Checkout the Code
+              uses: actions/checkout@v7
+            - name: Tryivy Scan
+              uses: aquasecurity/trivy-action@v0.36.0
               with:
-                username: ${{ secrets.DOCKERHUB_USERNAME }}
-                password: ${{ secrets.DOCKERHUB_TOKEN }}
+                scan-type: 'fs'         # file scan
+                severity: HIGH,CRITICAL
+                exit-code: 0    # exit code 0 to ignore the vulnerability, i to fail and exit
+                
+            - name: Build Docker Image
+              run: docker build -t ${{ secrets.ECR_REPO}}/my-repo:latest .          
+            
+            -  name: Scan image with Trivy 
+               uses: aquasecurity/trivy-action@0.36.0 
+               with: 
+                image-ref: ${{ secrets.ECR_REPO}}m/my-repo:latest
+                format: table 
+                exit-code: 0 # exit code 0 to ignore the vulnrabilities, i to fail and exit
+                ignore-unfixed: true 
+                severity: CRITICAL,HIGH
 
-            - name: Push image
-              run: 
-                docker push mzsterling/cicd-portfolio
-        
+            -   name: Configure AWS credentials
+                uses: aws-actions/configure-aws-credentials@v4 
+                with:
+                    aws-region: ${{ secrets.AWS_REGION}}
+                    role-to-assume: ${{ secrets.AWS_ROLE }}
+            -   name: Login to Amason ECR
+                id: login-ecr
+                uses: awss-actions/amazon-ecr-login@v2
+
+            -   name: Push image to ECR
+                run: docker push ${{ secrets.ECR_REPO}}/my-repo:latest
+
+    Deploy_to_ecs:
+        needs: build_scan
+        runs-on: ubuntu-latest
+        steps: 
+            -   name: Configure AWS credentials
+                uses: aws-actions/configure-aws-credentials@v4 
+                with:
+                    aws-region: ${{ secrets.AWS_REGION}}
+                    role-to-assume: ${{ secrets.AWS_ROLE }}
+            -   name: Deplopy to ECS
+                run: echo "deploy to ecs"
+
+
+
+
+            
